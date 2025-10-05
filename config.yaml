@@ -1,0 +1,51 @@
+# Board Game NLP Analysis Configuration
+
+# Data paths
+data:
+  base_path: "./data"
+  comments_file: "boardgames_comments.csv"
+  english_comments_file: "english_boardgames_comments.csv"
+  rankings_file: "boardgames_ranks.csv"
+  results_path: "./Results"
+
+# Model configuration
+model:
+  name: "albert-base-v2"
+  model_path: "./Model"
+  max_length: 512
+  batch_size: 16
+  learning_rate: 2e-5
+  num_epochs: 3
+  weight_decay: 0.01
+
+# API configuration
+api:
+  base_url: "https://api.geekdo.com/xmlapi2/thing"
+  rate_limit_delay: 1.5
+  max_retries: 3
+  timeout: 30
+
+# Analysis configuration
+analysis:
+  min_comment_length: 10
+  top_games_count: 10
+  comments_per_page: 100
+  max_comments_per_game: 1000
+  confidence_threshold: 0.7
+  enable_caching: true
+  parallel_processing: true
+  
+# Aspect definitions for ABSA
+aspects:
+  luck: ["luck", "chance", "random", "alea"]
+  bookkeeping: ["recording", "bookkeeping", "rulebook", "manual", "tracking", "record"]
+  downtime: ["downtime", "waiting", "idle", "turn"]
+  interaction: ["interaction", "influence", "impact", "affect"]
+  bash_the_leader: ["bash the leader", "target the leader", "attack the leader"]
+  complexity: ["complicated", "complex", "rules", "difficult", "complex"]
+
+# Logging configuration
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: "boardgame_analysis.log"
