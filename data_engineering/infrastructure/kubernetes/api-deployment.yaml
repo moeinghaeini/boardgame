@@ -1,0 +1,120 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: boardgame-nlp-api
+  namespace: boardgame-nlp
+  labels:
+    app: boardgame-nlp-api
+    component: api
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: boardgame-nlp-api
+  template:
+    metadata:
+      labels:
+        app: boardgame-nlp-api
+        component: api
+    spec:
+      containers:
+      - name: api
+        image: boardgame-nlp-api:latest
+        ports:
+        - containerPort: 8000
+          name: http
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: boardgame-nlp-secrets
+              key: database-url
+        - name: REDIS_URL
+          valueFrom:
+            secretKeyRef:
+              name: boardgame-nlp-secrets
+              key: redis-url
+        - name: MLFLOW_TRACKING_URI
+          valueFrom:
+            secretKeyRef:
+              name: boardgame-nlp-secrets
+              key: mlflow-tracking-uri
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: boardgame-nlp-secrets
+              key: aws-access-key-id
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: boardgame-nlp-secrets
+              key: aws-secret-access-key
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        volumeMounts:
+        - name: config
+          mountPath: /app/config
+          readOnly: true
+      volumes:
+      - name: config
+        configMap:
+          name: boardgame-nlp-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: boardgame-nlp-api-service
+  namespace: boardgame-nlp
+  labels:
+    app: boardgame-nlp-api
+spec:
+  selector:
+    app: boardgame-nlp-api
+  ports:
+  - name: http
+    port: 8000
+    targetPort: 8000
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: boardgame-nlp-api-ingress
+  namespace: boardgame-nlp
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  tls:
+  - hosts:
+    - api.boardgame-nlp.com
+    secretName: boardgame-nlp-tls
+  rules:
+  - host: api.boardgame-nlp.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: boardgame-nlp-api-service
+            port:
+              number: 8000
